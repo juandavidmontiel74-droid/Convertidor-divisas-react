@@ -7,69 +7,93 @@ const App = () => {
   const [divisaDefinitiva, setDivisaDefinitiva] = useState(null)
   const [valorCOP, setValorCOP] = useState('')
   const [resultado, setResultado] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     consultar()
   }, [])
 
   const consultar = async () => {
-    let url = "https://co.dolarapi.com/v1/cotizaciones"
-    const resultado = await fetch(url)
-    const data = await resultado.json()
+    const url = "https://co.dolarapi.com/v1/cotizaciones"
+    const res = await fetch(url)
+    const data = await res.json()
     setDivisas(data)
   }
 
   const cambioDivisa = (idDivisa) => {
     setSeleccion(idDivisa)
     setDivisaDefinitiva(buscarDivisa(idDivisa))
+    setError('')
   }
 
   const buscarDivisa = (idDivisa) => {
-    let divisaEncontrada = divisas.find(d => d.moneda === idDivisa)
-    return divisaEncontrada
+    return divisas.find(d => d.moneda === idDivisa)
   }
 
   const convertir = () => {
-    if (!divisaDefinitiva || !valorCOP) return
+
+    if (!valorCOP) {
+      setError("Ingresa un valor en COP")
+      return
+    }
+
+    if (valorCOP <= 0) {
+      setError("El valor debe ser mayor a 0")
+      return
+    }
+
+    if (!divisaDefinitiva) {
+      setError("Selecciona una divisa")
+      return
+    }
+
+    setError('')
     const conversion = valorCOP / divisaDefinitiva.ultimoCierre
     setResultado(conversion.toFixed(2))
   }
 
   return (
-    <>
-      <div className="contenedor">
-        <h1>Convertir desde COP</h1>
+    <div className="contenedor">
+      <h1>Convertir desde COP</h1>
 
-        <input
-          type="number"
-          id="valor"
-          placeholder="Cantidad en pesos (COP)"
-          onChange={(e) => setValorCOP(e.target.value)}
-        />
+      <input
+        type="number"
+        placeholder="Cantidad en pesos (COP)"
+        value={valorCOP}
+        min="0"
+        onKeyDown={(e) => {
+          if (e.key === '-' || e.key === 'e') {
 
-        <select
-          id="opcionesDivisas"
-          onChange={(evento) => cambioDivisa(evento.target.value)}
-        >
-          <option value="">Selecciona la divisa</option>
-          {divisas &&
-            divisas.map(divisa => (
-              <option key={divisa.moneda} value={divisa.moneda}>
-                {divisa.nombre}
-              </option>
-            ))
+
+          
+            e.preventDefault()
           }
-        </select>
+        }}
+        onChange={(e) => {
+          setValorCOP(e.target.value)
+          setError('')
+        }}
+      />
 
-        <button onClick={convertir}>Convertir</button>
+      <select onChange={(e) => cambioDivisa(e.target.value)}>
+        <option value="">Selecciona la divisa</option>
+        {divisas.map(divisa => (
+          <option key={divisa.moneda} value={divisa.moneda}>
+            {divisa.nombre}
+          </option>
+        ))}
+      </select>
 
-        {resultado && (
-          <p id="resultado">
-            Resultado: {resultado} {seleccion}
-          </p>
-        )}
-      </div>
-    </>
+      <button onClick={convertir}>Convertir</button>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {resultado && !error && (
+        <p>
+          Resultado: {resultado} {seleccion}
+        </p>
+      )}
+    </div>
   )
 }
 
